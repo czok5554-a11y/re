@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<style>html{touch-action:manipulation}</style>
+<title>뿌셔뿌셔</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;background:linear-gradient(135deg,#ffecd2 0%,#fcb69f 30%,#ffeaa7 70%,#dfe6e9 100%);font-family:'Segoe UI',sans-serif}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.tab-btn{border:none;border-radius:14px;padding:7px 13px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.18s}
+.tab-btn.active{background:#ff7675;color:white;box-shadow:0 3px 10px rgba(255,118,117,0.35)}
+.tab-btn:not(.active){background:rgba(255,255,255,0.7);color:#555}
+.card{background:rgba(255,255,255,0.82);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);backdrop-filter:blur(6px)}
+.btn{border:none;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s}
+.btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.btn-buy{background:#74b9ff;color:white}
+.btn-sell{background:#fd79a8;color:white}
+.btn-work{background:#55efc4;color:#333}
+.btn-next{background:linear-gradient(90deg,#fd79a8,#fdcb6e);color:white;padding:10px 28px;font-size:15px;border-radius:14px;border:none;cursor:pointer;font-weight:700}
+input[type=number]{width:52px;border:2px solid #dfe6e9;border-radius:8px;padding:4px 6px;font-size:13px;text-align:center}
+.char-opt{border:3px solid transparent;border-radius:12px;padding:4px 8px;cursor:pointer;font-size:22px;background:rgba(255,255,255,0.7);transition:all 0.15s}
+.char-opt.selected{border-color:#ff7675;background:white}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{border-radius:10px;padding:10px;text-align:center}
+</style>
+<script>screen.orientation </head></head> screen.orientation.lock </head></head> screen.orientation.lock("portrait").catch(()=>{});</script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useCallback} = React;
+
+const JOBS=[
+  {id:"cafe",name:"☕ 카페 알바",pay:50,emoji:"☕"},
+  {id:"delivery",name:"🛵 배달 알바",pay:80,emoji:"🛵"},
+  {id:"office",name:"💼 사무직",pay:200,emoji:"💼"},
+  {id:"programmer",name:"💻 개발자",pay:500,emoji:"💻"},
+];
+const PROPERTIES=[
+  {id:"studio",name:"🏠 원룸",price:5000,rent:80,emoji:"🏠"},
+  {id:"apt",name:"🏢 아파트",price:20000,rent:400,emoji:"🏢"},
+  {id:"building",name:"🏙️ 빌딩",price:100000,rent:2500,emoji:"🏙️"},
+];
+const ITEMS=[
+  {id:"coffee",name:"☕ 커피",buyPrice:30,sellPrice:50},
+  {id:"phone",name:"📱 스마트폰",buyPrice:500,sellPrice:800},
+  {id:"car",name:"🚗 중고차",buyPrice:3000,sellPrice:4500},
+];
+const CHAR_SKINS=["🧑","👦","👧","🧔","👩","🧑‍🦱","🧑‍🦰","🧑‍🦳"];
+const CHAR_OUTFITS=["👕","👔","🥋","👘","🎩","👗","🧥","🥼"];
+const CHAR_ACCS=["","🕶️","🎧","👒","🧢","🎓","💍","⌚"];
+const STOCK_LIST=[
+  {id:"삼전",name:"삼성전자",emoji:"📱"},
+  {id:"카카오",name:"카카오",emoji:"💬"},
+  {id:"네이버",name:"네이버",emoji:"🔍"},
+  {id:"현대차",name:"현대자동차",emoji:"🚗"},
+  {id:"뿌셔코인",name:"뿌셔코인",emoji:"🪙"},
+];
+
+function genPrices(){return Object.fromEntries(STOCK_LIST.map(s=>[s.id,Math.floor(Math.random()*900)+100]));}
+
+function StockChart({history}){
+  if(!history||history.length<2)return null;
+  const max=Math.max(...history),min=Math.min(...history),range=max-min||1;
+  const w=120,h=40;
+  const pts=history.map((v,i)=>`${(i/(history.length-1))*w},${h-((v-min)/range)*h}`).join(" ");
+  const last=history[history.length-1],prev=history[history.length-2];
+  return <svg width={w} height={h} style={{display:"block"}}><polyline fill="none" stroke={last>=prev?"#4ade80":"#f87171"} strokeWidth="2" points={pts}/></svg>;
+}
+
+function App(){
+  const [tab,setTab]=useState("home");
+  const [money,setMoney]=useState(1000);
+  const [day,setDay]=useState(1);
+  const [charSkin,setCharSkin]=useState(0);
+  const [charOutfit,setCharOutfit]=useState(0);
+  const [charAcc,setCharAcc]=useState(0);
+  const [charName,setCharName]=useState("뿌셔");
+  const [stocks,setStocks]=useState(genPrices);
+  const [portfolio,setPortfolio]=useState({});
+  const [stockHistory,setStockHistory]=useState(()=>Object.fromEntries(STOCK_LIST.map(s=>[s.id,[]])));
+  const [properties,setProperties]=useState([]);
+  const [inventory,setInventory]=useState({});
+  const [workCooldown,setWorkCooldown]=useState({});
+  const [log,setLog]=useState(["🎮 뿌셔뿌셔 세계에 오신 걸 환영해요!"]);
+  const [tradeQty,setTradeQty]=useState({});
+  const [notification,setNotification]=useState(null);
+
+  const addLog=useCallback(msg=>setLog(p=>[msg,...p].slice(0,30)),[]);
+  const notify=useCallback((msg,type="success")=>{setNotification({msg,type});setTimeout(()=>setNotification(null),2200);},[]);
+
+  const nextDay=()=>{
+    const nd=day+1;setDay(nd);
+    const ns={};
+    STOCK_LIST.forEach(s=>{const c=(Math.random()-0.48)*0.12;ns[s.id]=Math.max(10,Math.round(stocks[s.id]*(1+c)));});
+    setStocks(ns);
+    setStockHistory(prev=>{const n={...prev};STOCK_LIST.forEach(s=>{n[s.id]=[...(prev[s.id]||[]).slice(-19),stocks[s.id]];});return n;});
+    let rent=0;
+    properties.forEach(pid=>{const p=PROPERTIES.find(x=>x.id===pid);if(p)rent+=p.rent;});
+    if(rent>0){setMoney(m=>m+rent);addLog(`🏠 임대료 +${rent.toLocaleString()}원!`);}
+    setWorkCooldown({});
+    addLog(`📅 Day ${nd} 시작!`);
+    notify(`📅 Day ${nd}! 새날이 밝았어요!`,"info");
+  };
+
+  const doWork=job=>{
+    if(workCooldown[job.id]){notify("⏳ 오늘은 이미 했어요!","warn");return;}
+    setMoney(m=>m+job.pay);setWorkCooldown(p=>({...p,[job.id]:true}));
+    addLog(`${job.emoji} ${job.name} +${job.pay.toLocaleString()}원`);notify(`+${job.pay.toLocaleString()}원! 💰`);
+  };
+  const buyStock=sid=>{
+    const qty=parseInt(tradeQty[sid]||1),price=stocks[sid]*qty;
+    if(money<price){notify("💸 돈이 부족해요!","warn");return;}
+    setMoney(m=>m-price);setPortfolio(p=>({...p,[sid]:(p[sid]||0)+qty}));
+    addLog(`📈 ${sid} ${qty}주 매수`);notify(`📈 ${sid} ${qty}주 매수!`);
+  };
+  const sellStock=sid=>{
+    const qty=parseInt(tradeQty[sid]||1);
+    if((portfolio[sid]||0)<qty){notify("📉 주식 부족!","warn");return;}
+    const price=stocks[sid]*qty;
+    setMoney(m=>m+price);setPortfolio(p=>({...p,[sid]:p[sid]-qty}));
+    addLog(`📉 ${sid} ${qty}주 매도 +${price.toLocaleString()}원`);notify(`+${price.toLocaleString()}원!`);
+  };
+  const buyProperty=p=>{
+    if(money<p.price){notify("💸 돈이 부족해요!","warn");return;}
+    if(properties.includes(p.id)){notify("이미 보유 중!","warn");return;}
+    setMoney(m=>m-p.price);setProperties(prev=>[...prev,p.id]);
+    addLog(`${p.emoji} ${p.name} 구매!`);notify(`${p.emoji} 구매 완료!`);
+  };
+  const buyItem=item=>{
+    if(money<item.buyPrice){notify("💸 돈이 부족해요!","warn");return;}
+    setMoney(m=>m-item.buyPrice);setInventory(p=>({...p,[item.id]:(p[item.id]||0)+1}));
+    addLog(`🛒 ${item.name} 구매!`);notify(`🛒 구매!`);
+  };
+  const sellItem=item=>{
+    if(!(inventory[item.id]>0)){notify("아이템 없어요!","warn");return;}
+    setMoney(m=>m+item.sellPrice);setInventory(p=>({...p,[item.id]:p[item.id]-1}));
+    addLog(`💰 ${item.name} 판매 +${item.sellPrice.toLocaleString()}원`);notify(`+${item.sellPrice.toLocaleString()}원!`);
+  };
+
+  const totalAssets=money+STOCK_LIST.reduce((a,s)=>a+(portfolio[s.id]||0)*stocks[s.id],0)+properties.reduce((a,pid)=>{const p=PROPERTIES.find(x=>x.id===pid);return a+(p?p.price:0);},0);
+  const tabs=[{id:"home",label:"🏠 홈"},{id:"stock",label:"📈 주식"},{id:"work",label:"💼 알바"},{id:"property",label:"🏢 부동산"},{id:"market",label:"🛒 거래"},{id:"char",label:"🎨 캐릭터"}];
+
+  return (
+    <div style={{minHeight:"100vh",position:"relative"}}>
+      <div style={{position:"fixed",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,200,100,0.18)",pointerEvents:"none"}}/>
+      <div style={{position:"fixed",bottom:-40,left:-40,width:160,height:160,borderRadius:"50%",background:"rgba(255,150,150,0.13)",pointerEvents:"none"}}/>
+      {notification&&<div style={{position:"fixed",top:18,left:"50%",transform:"translateX(-50%)",background:notification.type==="warn"?"#fff3cd":notification.type==="info"?"#cce5ff":"#d4edda",border:`2px solid ${notification.type==="warn"?"#ffc107":notification.type==="info"?"#4dabf7":"#28a745"}`,borderRadius:16,padding:"10px 22px",fontWeight:700,fontSize:15,zIndex:999,boxShadow:"0 4px 18px rgba(0,0,0,0.13)",animation:"fadeIn 0.3s",color:"#333"}}>{notification.msg}</div>}
+      <div style={{maxWidth:430,margin:"0 auto",padding:"14px 10px 80px"}}>
+        <div className="card" style={{textAlign:"center",marginBottom:10,padding:"12px 16px"}}>
+          <div style={{fontSize:28,animation:"bounce 2s infinite"}}>{CHAR_SKINS[charSkin]}{CHAR_ACCS[charAcc]}</div>
+          <div style={{fontWeight:900,fontSize:20,color:"#e17055"}}>뿌셔뿌셔</div>
+          <div style={{fontSize:12,color:"#636e72"}}>{charName} · Day {day}</div>
+          <div style={{fontSize:18,fontWeight:800,color:"#2d3436",marginTop:4}}>💰 {money.toLocaleString()}원</div>
+          <div style={{fontSize:12,color:"#636e72"}}>총자산 {totalAssets.toLocaleString()}원</div>
+          <button className="btn-next" style={{marginTop:10}} onClick={nextDay}>⏭ 다음 날로!</button>
+        </div>
+        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+          {tabs.map(t=><button key={t.id} className={`tab-btn${tab===t.id?" active":""}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}
+        </div>
+
+        {tab==="home"&&<div>
+          <div className="card">
+            <div style={{fontWeight:800,fontSize:15,marginBottom:8}}>📊 내 현황</div>
+            <div className="grid2">
+              <div className="stat-box" style={{background:"#fff5f5"}}><div style={{fontSize:20}}>💰</div><div style={{fontSize:13,fontWeight:700}}>{money.toLocaleString()}원</div><div style={{fontSize:11,color:"#888"}}>현금</div></div>
+              <div className="stat-box" style={{background:"#f0fff4"}}><div style={{fontSize:20}}>📈</div><div style={{fontSize:13,fontWeight:700}}>{STOCK_LIST.reduce((a,s)=>a+(portfolio[s.id]||0)*stocks[s.id],0).toLocaleString()}원</div><div style={{fontSize:11,color:"#888"}}>주식</div></div>
+              <div className="stat-box" style={{background:"#fff9f0"}}><div style={{fontSize:20}}>🏢</div><div style={{fontSize:13,fontWeight:700}}>{properties.length}개</div><div style={{fontSize:11,color:"#888"}}>부동산</div></div>
+              <div className="stat-box" style={{background:"#f8f0ff"}}><div style={{fontSize:20}}>🏆</div><div style={{fontSize:13,fontWeight:700}}>{totalAssets.toLocaleString()}원</div><div style={{fontSize:11,color:"#888"}}>총자산</div></div>
+            </div>
+          </div>
+          <div className="card">
+            <div style={{fontWeight:800,fontSize:15,marginBottom:8}}>📜 활동 로그</div>
+            {log.slice(0,8).map((l,i)=><div key={i} style={{fontSize:13,color:"#555",borderBottom:"1px solid #f0f0f0",padding:"5px 0"}}>{l}</div>)}
+          </div>
+        </div>}
+
+        {tab==="stock"&&<div>
+          {STOCK_LIST.map(s=>{
+            const price=stocks[s.id],held=portfolio[s.id]||0,hist=stockHistory[s.id]||[];
+            const prev=hist.length>0?hist[hist.length-1]:price,change=prev?((price-prev)/prev*100).toFixed(1):0,isUp=price>=prev;
+            return <div className="card" key={s.id}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div><span style={{fontSize:18}}>{s.emoji}</span><span style={{fontWeight:800,fontSize:15,marginLeft:6}}>{s.name}</span><span style={{marginLeft:8,fontSize:13,color:isUp?"#27ae60":"#e74c3c",fontWeight:700}}>{isUp?"▲":"▼"} {Math.abs(change)}%</span></div>
+                <div style={{textAlign:"right"}}><div style={{fontWeight:800,fontSize:16}}>{price.toLocaleString()}원</div><div style={{fontSize:11,color:"#888"}}>보유 {held}주</div></div>
+              </div>
+              <StockChart history={[...hist,price]}/>
+              <div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
+                <input type="number" min="1" value={tradeQty[s.id]||1} onChange={e=>setTradeQty(p=>({...p,[s.id]:e.target.value}))}/>
+                <span style={{fontSize:12,color:"#888"}}>주</span>
+                <button className="btn btn-buy" onClick={()=>buyStock(s.id)}>매수</button>
+                <button className="btn btn-sell" onClick={()=>sellStock(s.id)}>매도</button>
+                <span style={{fontSize:11,color:"#aaa",marginLeft:"auto"}}>{((tradeQty[s.id]||1)*price).toLocaleString()}원</span>
+              </div>
+            </div>;
+          })}
+        </div>}
+
+        {tab==="work"&&<div>
+          {JOBS.map(job=><div className="card" key={job.id}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><span style={{fontSize:20}}>{job.emoji}</span><span style={{fontWeight:800,fontSize:15,marginLeft:8}}>{job.name}</span><div style={{fontSize:12,color:"#888",marginTop:2}}>💰 +{job.pay.toLocaleString()}원</div></div>
+              <button className="btn btn-work" style={{opacity:workCooldown[job.id]?0.5:1}} onClick={()=>doWork(job)}>{workCooldown[job.id]?"완료✓":"일하기!"}</button>
+            </div>
+          </div>)}
+        </div>}
+
+        {tab==="property"&&<div>
+          {PROPERTIES.map(p=>{const owned=properties.includes(p.id);return <div className="card" key={p.id}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><span style={{fontSize:22}}>{p.emoji}</span><span style={{fontWeight:800,fontSize:15,marginLeft:8}}>{p.name}</span>{owned&&<span style={{marginLeft:6,fontSize:12,color:"#27ae60",fontWeight:700}}>소유중</span>}<div style={{fontSize:12,color:"#888",marginTop:2}}>💰 {p.price.toLocaleString()}원 | 임대 +{p.rent.toLocaleString()}원/일</div></div>
+              <button className="btn btn-buy" style={{opacity:owned?0.4:1}} onClick={()=>buyProperty(p)}>{owned?"보유":"구매"}</button>
+            </div>
+          </div>;})}
+        </div>}
+
+        {tab==="market"&&<div>
+          <div className="card" style={{marginBottom:4,padding:"10px 16px"}}><div style={{fontWeight:800,fontSize:14,color:"#888"}}>싸게 사서 비싸게 팔아요!</div></div>
+          {ITEMS.map(item=>{const held=inventory[item.id]||0;return <div className="card" key={item.id}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><span style={{fontWeight:800,fontSize:15}}>{item.name}</span><div style={{fontSize:12,color:"#888",marginTop:2}}>구매 {item.buyPrice.toLocaleString()}원 → 판매 {item.sellPrice.toLocaleString()}원 <span style={{color:"#27ae60",fontWeight:700}}>+{item.sellPrice-item.buyPrice}원</span></div><div style={{fontSize:12,color:"#888"}}>보유 {held}개</div></div>
+              <div style={{display:"flex",gap:6}}><button className="btn btn-buy" onClick={()=>buyItem(item)}>구매</button><button className="btn btn-sell" onClick={()=>sellItem(item)}>판매</button></div>
+            </div>
+          </div>;})}
+        </div>}
+
+        {tab==="char"&&<div>
+          <div className="card" style={{textAlign:"center"}}>
+            <div style={{fontSize:60,animation:"bounce 2s infinite"}}>{CHAR_SKINS[charSkin]}{CHAR_ACCS[charAcc]}</div>
+            <div style={{fontSize:22}}>{CHAR_OUTFITS[charOutfit]}</div>
+            <input value={charName} onChange={e=>setCharName(e.target.value)} style={{border:"2px solid #fdcb6e",borderRadius:10,padding:"6px 12px",fontSize:16,fontWeight:700,textAlign:"center",width:120,marginTop:8}}/>
+          </div>
+          <div className="card"><div style={{fontWeight:800,marginBottom:8}}>얼굴 선택</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{CHAR_SKINS.map((s,i)=><button key={i} className={`char-opt${charSkin===i?" selected":""}`} onClick={()=>setCharSkin(i)}>{s}</button>)}</div></div>
+          <div className="card"><div style={{fontWeight:800,marginBottom:8}}>복장 선택</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{CHAR_OUTFITS.map((o,i)=><button key={i} className={`char-opt${charOutfit===i?" selected":""}`} onClick={()=>setCharOutfit(i)}>{o}</button>)}</div></div>
+          <div className="card"><div style={{fontWeight:800,marginBottom:8}}>액세서리</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{CHAR_ACCS.map((a,i)=><button key={i} className={`char-opt${charAcc===i?" selected":""}`} onClick={()=>setCharAcc(i)}>{a||"없음"}</button>)}</div></div>
+        </div>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
